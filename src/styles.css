@@ -545,6 +545,65 @@ button {
   inset: auto 8px 6px;
   font-size: 0.58rem;
   color: rgba(255, 255, 255, 0.75);
+  pointer-events: none;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.roulette-table[data-overlay="on"] .rail-zone::after {
+  content: attr(data-overlay-label);
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.52rem;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
+.roulette-table[data-overlay="on"] .split-zone::after,
+.roulette-table[data-overlay="on"] .corner-zone::after,
+.roulette-table[data-overlay="on"] .zero-zone--split-a::after,
+.roulette-table[data-overlay="on"] .zero-zone--split-b::after,
+.roulette-table[data-overlay="on"] .zero-zone--split-c::after {
+  content: "";
+}
+
+.roulette-table[data-overlay="on"] .split-zone,
+.roulette-table[data-overlay="on"] .corner-zone {
+  background: rgba(217, 179, 106, 0.14);
+  border-color: rgba(217, 179, 106, 0.34);
+}
+
+.roulette-table[data-overlay="on"] .split-zone::before,
+.roulette-table[data-overlay="on"] .corner-zone::before,
+.roulette-table[data-overlay="on"] .zero-zone--split-a::before,
+.roulette-table[data-overlay="on"] .zero-zone--split-b::before,
+.roulette-table[data-overlay="on"] .zero-zone--split-c::before {
+  content: attr(data-overlay-label);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: rgba(10, 18, 18, 0.72);
+  border: 1px solid rgba(217, 179, 106, 0.28);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.48rem;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.roulette-table[data-overlay="on"] .corner-zone::before {
+  bottom: calc(100% + 8px);
+}
+
+.roulette-table[data-overlay="on"] .zero-zone--street-a::after,
+.roulette-table[data-overlay="on"] .zero-zone--street-b::after {
+  content: attr(data-overlay-label);
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.5rem;
 }
 
 .chip-row {
@@ -1228,6 +1287,16 @@ button {
   .corner-zone--a { left: calc(33.33% - 8px); }
   .corner-zone--b { left: calc(66.66% - 8px); }
 
+  .roulette-table[data-overlay="on"] .split-zone::before,
+  .roulette-table[data-overlay="on"] .corner-zone::before,
+  .roulette-table[data-overlay="on"] .zero-zone--split-a::before,
+  .roulette-table[data-overlay="on"] .zero-zone--split-b::before,
+  .roulette-table[data-overlay="on"] .zero-zone--split-c::before {
+    font-size: 0.42rem;
+    padding: 2px 4px;
+    bottom: calc(100% + 4px);
+  }
+
   .column-row,
   .dozen-row,
   .outside-row {
@@ -1461,6 +1530,22 @@ button {
   .corner-zone { top: -7px; }
   .corner-zone--a { left: calc(33.33% - 7px); }
   .corner-zone--b { left: calc(66.66% - 7px); }
+
+  .roulette-table[data-overlay="on"] .rail-zone::after,
+  .roulette-table[data-overlay="on"] .zero-zone--street-a::after,
+  .roulette-table[data-overlay="on"] .zero-zone--street-b::after {
+    font-size: 0.44rem;
+  }
+
+  .roulette-table[data-overlay="on"] .split-zone::before,
+  .roulette-table[data-overlay="on"] .corner-zone::before,
+  .roulette-table[data-overlay="on"] .zero-zone--split-a::before,
+  .roulette-table[data-overlay="on"] .zero-zone--split-b::before,
+  .roulette-table[data-overlay="on"] .zero-zone--split-c::before {
+    font-size: 0.38rem;
+    padding: 1px 3px;
+    bottom: calc(100% + 3px);
+  }
 
   .column-row,
   .dozen-row,

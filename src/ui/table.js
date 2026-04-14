@@ -19,8 +19,8 @@ function createHorizontalSplits(row) {
   const firstPair = [middle, left].sort((a, b) => a - b);
   const secondPair = [right, middle].sort((a, b) => a - b);
   return `
-    <button class="bet-zone split-zone split-zone--h split-zone--h-a" data-bet-key="split:${firstPair[0]}-${firstPair[1]}" data-label="${firstPair[0]}-${firstPair[1]}"></button>
-    <button class="bet-zone split-zone split-zone--h split-zone--h-b" data-bet-key="split:${secondPair[0]}-${secondPair[1]}" data-label="${secondPair[0]}-${secondPair[1]}"></button>
+    <button class="bet-zone split-zone split-zone--h split-zone--h-a" data-bet-key="split:${firstPair[0]}-${firstPair[1]}" data-label="${firstPair[0]}-${firstPair[1]}" data-overlay-label="${firstPair[0]}-${firstPair[1]}"></button>
+    <button class="bet-zone split-zone split-zone--h split-zone--h-b" data-bet-key="split:${secondPair[0]}-${secondPair[1]}" data-label="${secondPair[0]}-${secondPair[1]}" data-overlay-label="${secondPair[0]}-${secondPair[1]}"></button>
   `;
 }
 
@@ -35,9 +35,9 @@ function createVerticalSplits(row) {
   const pairC = [current[2], next[2]].sort((a, b) => a - b);
 
   return `
-    <button class="bet-zone split-zone split-zone--v split-zone--v-a" data-bet-key="split:${pairA[0]}-${pairA[1]}" data-label="${pairA[0]}-${pairA[1]}"></button>
-    <button class="bet-zone split-zone split-zone--v split-zone--v-b" data-bet-key="split:${pairB[0]}-${pairB[1]}" data-label="${pairB[0]}-${pairB[1]}"></button>
-    <button class="bet-zone split-zone split-zone--v split-zone--v-c" data-bet-key="split:${pairC[0]}-${pairC[1]}" data-label="${pairC[0]}-${pairC[1]}"></button>
+    <button class="bet-zone split-zone split-zone--v split-zone--v-a" data-bet-key="split:${pairA[0]}-${pairA[1]}" data-label="${pairA[0]}-${pairA[1]}" data-overlay-label="${pairA[0]}-${pairA[1]}"></button>
+    <button class="bet-zone split-zone split-zone--v split-zone--v-b" data-bet-key="split:${pairB[0]}-${pairB[1]}" data-label="${pairB[0]}-${pairB[1]}" data-overlay-label="${pairB[0]}-${pairB[1]}"></button>
+    <button class="bet-zone split-zone split-zone--v split-zone--v-c" data-bet-key="split:${pairC[0]}-${pairC[1]}" data-label="${pairC[0]}-${pairC[1]}" data-overlay-label="${pairC[0]}-${pairC[1]}"></button>
   `;
 }
 
@@ -51,8 +51,8 @@ function createCorners(row) {
   const cornerB = [current[1], current[2], next[1], next[2]].sort((a, b) => a - b);
 
   return `
-    <button class="bet-zone corner-zone corner-zone--a" data-bet-key="corner:${cornerA.join("-")}" data-label="${cornerA.join("-")}"></button>
-    <button class="bet-zone corner-zone corner-zone--b" data-bet-key="corner:${cornerB.join("-")}" data-label="${cornerB.join("-")}"></button>
+    <button class="bet-zone corner-zone corner-zone--a" data-bet-key="corner:${cornerA.join("-")}" data-label="${cornerA.join("-")}" data-overlay-label="${cornerA.join("-")}"></button>
+    <button class="bet-zone corner-zone corner-zone--b" data-bet-key="corner:${cornerB.join("-")}" data-label="${cornerB.join("-")}" data-overlay-label="${cornerB.join("-")}"></button>
   `;
 }
 
@@ -61,7 +61,7 @@ function createRowMarkup(row) {
   const numbers = [base + 2, base + 1, base];
   return `
     <div class="inside-row" data-row="${row + 1}">
-      <button class="bet-zone rail-zone rail-zone--street" data-bet-key="street:${base}-${base + 2}" data-label="street ${base}-${base + 2}">Street</button>
+      <button class="bet-zone rail-zone rail-zone--street" data-bet-key="street:${base}-${base + 2}" data-label="street ${base}-${base + 2}" data-overlay-label="${base}-${base + 2}">Street</button>
       <div class="inside-row__numbers">
         ${numbers.map(createNumberCell).join("")}
         ${createHorizontalSplits(row)}
@@ -76,7 +76,7 @@ function createDividerMarkup(row) {
   const end = start + 5;
   return `
     <div class="inside-divider">
-      <button class="bet-zone rail-zone rail-zone--six" data-bet-key="sixLine:${start}-${end}" data-label="six line ${start}-${end}">6 line</button>
+      <button class="bet-zone rail-zone rail-zone--six" data-bet-key="sixLine:${start}-${end}" data-label="six line ${start}-${end}" data-overlay-label="${start}-${end}">6 line</button>
       <div class="inside-divider__grid">
         ${createVerticalSplits(row)}
         ${createCorners(row)}
@@ -103,11 +103,11 @@ export function createTableMarkup() {
       <div class="roulette-table" data-overlay="off">
         <div class="zero-complex">
           <button class="bet-zone zero-zone zero-zone--main" data-bet-key="straight:0" data-label="0"><span>0</span><div class="chip-stack" data-chip-stack="straight:0"></div></button>
-          <button class="bet-zone zero-zone zero-zone--split-a" data-bet-key="split:0-3" data-label="0-3"></button>
-          <button class="bet-zone zero-zone zero-zone--split-b" data-bet-key="split:0-2" data-label="0-2"></button>
-          <button class="bet-zone zero-zone zero-zone--split-c" data-bet-key="split:0-1" data-label="0-1"></button>
-          <button class="bet-zone zero-zone zero-zone--street-a" data-bet-key="street:0-2-3" data-label="0-2-3"></button>
-          <button class="bet-zone zero-zone zero-zone--street-b" data-bet-key="street:0-1-2" data-label="0-1-2"></button>
+          <button class="bet-zone zero-zone zero-zone--split-a" data-bet-key="split:0-3" data-label="0-3" data-overlay-label="0-3"></button>
+          <button class="bet-zone zero-zone zero-zone--split-b" data-bet-key="split:0-2" data-label="0-2" data-overlay-label="0-2"></button>
+          <button class="bet-zone zero-zone zero-zone--split-c" data-bet-key="split:0-1" data-label="0-1" data-overlay-label="0-1"></button>
+          <button class="bet-zone zero-zone zero-zone--street-a" data-bet-key="street:0-2-3" data-label="0-2-3" data-overlay-label="0-2-3"></button>
+          <button class="bet-zone zero-zone zero-zone--street-b" data-bet-key="street:0-1-2" data-label="0-1-2" data-overlay-label="0-1-2"></button>
         </div>
         <div class="inside-layout">
           ${rows}
