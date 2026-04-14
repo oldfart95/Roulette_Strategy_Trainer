@@ -9,9 +9,9 @@ Open `index.html` in a modern browser. The checked-in browser bundle is wired so
 ## Deploy to GitHub Pages
 
 1. Push the repository to GitHub.
-2. In repository settings, enable GitHub Pages.
-3. Set the deployment source to the branch that contains this project and the root folder.
-4. No build step is required because the project uses plain static assets and relative paths.
+2. In repository settings, open `Pages`.
+3. Under `Build and deployment`, set `Source` to `GitHub Actions`.
+4. Push to `main`. The included workflow publishes `index.html` and `src/` as a static Pages site automatically.
 
 ## Architecture
 
