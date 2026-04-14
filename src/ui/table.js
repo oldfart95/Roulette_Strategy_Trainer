@@ -100,7 +100,17 @@ export function createTableMarkup() {
           <span>Study overlay</span>
         </label>
       </div>
+      <div class="table-key" aria-hidden="true">
+        <span class="table-key__item"><i class="table-key__swatch table-key__swatch--inside"></i>Inside grid</span>
+        <span class="table-key__item"><i class="table-key__swatch table-key__swatch--split"></i>Split and corner dots</span>
+        <span class="table-key__item"><i class="table-key__swatch table-key__swatch--outside"></i>Dozens, columns, and outside bets</span>
+      </div>
       <div class="roulette-table" data-overlay="off">
+        <div class="table-band table-band--top" aria-hidden="true">
+          <span>Zero section</span>
+          <span>Inside numbers</span>
+          <span>Outside bets</span>
+        </div>
         <div class="zero-complex">
           <button class="bet-zone zero-zone zero-zone--main" data-bet-key="straight:0" data-label="0"><span>0</span><div class="chip-stack" data-chip-stack="straight:0"></div></button>
           <button class="bet-zone zero-zone zero-zone--split-a" data-bet-key="split:0-3" data-label="0-3" data-overlay-label="0-3"></button>
@@ -110,9 +120,19 @@ export function createTableMarkup() {
           <button class="bet-zone zero-zone zero-zone--street-b" data-bet-key="street:0-1-2" data-label="0-1-2" data-overlay-label="0-1-2"></button>
         </div>
         <div class="inside-layout">
+          <div class="inside-layout__guide inside-layout__guide--columns" aria-hidden="true">
+            <span>3rd column</span>
+            <span>2nd column</span>
+            <span>1st column</span>
+          </div>
           ${rows}
         </div>
         <div class="bottom-bets">
+          <div class="table-band table-band--bottom" aria-hidden="true">
+            <span>Columns</span>
+            <span>Dozens</span>
+            <span>Even money</span>
+          </div>
           <div class="column-row">
             <button class="bet-zone outside-zone" data-bet-key="column:column-3" data-label="column 3">2 to 1</button>
             <button class="bet-zone outside-zone" data-bet-key="column:column-2" data-label="column 2">2 to 1</button>
