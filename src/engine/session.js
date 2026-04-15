@@ -3,6 +3,7 @@ import { DEFAULT_SETTINGS, HISTORY_LIMIT, RECENT_RESULTS_LIMIT } from "../config
 export function createInitialSession(settings = DEFAULT_SETTINGS) {
   const bankroll = Number(settings.bankrollDefault) || DEFAULT_SETTINGS.bankrollDefault;
   return {
+    wheelMode: settings.wheelMode ?? DEFAULT_SETTINGS.wheelMode,
     bankroll,
     defaultBankroll: bankroll,
     peakBankroll: bankroll,
@@ -113,6 +114,7 @@ export function settleSpin(session, spinResult, resolution) {
         timestamp: spinResult.timestamp,
         number: spinResult.number,
         wheelIndex: spinResult.wheelIndex,
+        wheelMode: spinResult.wheelMode,
         source: spinResult.source,
       },
       ...session.fairnessLog,
