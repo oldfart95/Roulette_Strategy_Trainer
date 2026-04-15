@@ -635,6 +635,22 @@ function computeStats(session) {
 }
 
 
+// src/engine/game.js
+
+function startSpin(session) {
+  if (!session.activeBets.length) {
+    throw new Error("Place at least one bet before spinning.");
+  }
+  if (session.locked) {
+    throw new Error("Spin already in progress.");
+  }
+
+  const spin = generateSpin();
+  const resolution = resolveSpin(session.activeBets, spin.number);
+  return { spin, resolution };
+}
+
+
 // src/storage.js
 
 function loadJson(key, fallback) {
@@ -682,22 +698,6 @@ function saveFairnessLog(log) {
 
 function loadFairnessLog() {
   return loadJson(STORAGE_KEYS.fairness, []);
-}
-
-
-// src/engine/game.js
-
-function startSpin(session) {
-  if (!session.activeBets.length) {
-    throw new Error("Place at least one bet before spinning.");
-  }
-  if (session.locked) {
-    throw new Error("Spin already in progress.");
-  }
-
-  const spin = generateSpin();
-  const resolution = resolveSpin(session.activeBets, spin.number);
-  return { spin, resolution };
 }
 
 
@@ -952,99 +952,171 @@ function renderFairnessStrip(container, fairnessLog) {
 
 // src/ui/table.js
 
+const TOP_ROW = [3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36];
+const MIDDLE_ROW = [2, 5, 8, 11, 14, 17, 20, 23, 26, 29, 32, 35];
+const BOTTOM_ROW = [1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34];
+
 function createNumberCell(number) {
-  const colorClass = number === 0 ? "green" : RED_NUMBERS.has(number) ? "red" : "black";
+  const colorClass = RED_NUMBERS.has(number) ? "red" : "black";
   return `
     <button class="bet-zone number-cell number-cell--${colorClass}" data-bet-key="straight:${number}" data-label="${number}">
-      <span>${number}</span>
+      <span class="number-cell__disc">
+        <span class="number-cell__value">${number}</span>
+      </span>
       <div class="chip-stack" data-chip-stack="straight:${number}"></div>
     </button>
   `;
 }
 
-function createHorizontalSplits(row) {
-  const base = row * 3 + 1;
-  const left = base + 2;
-  const middle = base + 1;
-  const right = base;
-  const firstPair = [middle, left].sort((a, b) => a - b);
-  const secondPair = [right, middle].sort((a, b) => a - b);
+function createRowMarkup(numbers, rowClass) {
   return `
-    <button class="bet-zone split-zone split-zone--h split-zone--h-a" data-bet-key="split:${firstPair[0]}-${firstPair[1]}" data-label="${firstPair[0]}-${firstPair[1]}"></button>
-    <button class="bet-zone split-zone split-zone--h split-zone--h-b" data-bet-key="split:${secondPair[0]}-${secondPair[1]}" data-label="${secondPair[0]}-${secondPair[1]}"></button>
-  `;
-}
-
-function createVerticalSplits(row) {
-  if (row === 11) return "";
-  const base = row * 3 + 1;
-  const nextBase = base + 3;
-  const current = [base + 2, base + 1, base];
-  const next = [nextBase + 2, nextBase + 1, nextBase];
-  const pairA = [current[0], next[0]].sort((a, b) => a - b);
-  const pairB = [current[1], next[1]].sort((a, b) => a - b);
-  const pairC = [current[2], next[2]].sort((a, b) => a - b);
-
-  return `
-    <button class="bet-zone split-zone split-zone--v split-zone--v-a" data-bet-key="split:${pairA[0]}-${pairA[1]}" data-label="${pairA[0]}-${pairA[1]}"></button>
-    <button class="bet-zone split-zone split-zone--v split-zone--v-b" data-bet-key="split:${pairB[0]}-${pairB[1]}" data-label="${pairB[0]}-${pairB[1]}"></button>
-    <button class="bet-zone split-zone split-zone--v split-zone--v-c" data-bet-key="split:${pairC[0]}-${pairC[1]}" data-label="${pairC[0]}-${pairC[1]}"></button>
-  `;
-}
-
-function createCorners(row) {
-  if (row === 11) return "";
-  const base = row * 3 + 1;
-  const nextBase = base + 3;
-  const current = [base + 2, base + 1, base];
-  const next = [nextBase + 2, nextBase + 1, nextBase];
-  const cornerA = [current[0], current[1], next[0], next[1]].sort((a, b) => a - b);
-  const cornerB = [current[1], current[2], next[1], next[2]].sort((a, b) => a - b);
-
-  return `
-    <button class="bet-zone corner-zone corner-zone--a" data-bet-key="corner:${cornerA.join("-")}" data-label="${cornerA.join("-")}"></button>
-    <button class="bet-zone corner-zone corner-zone--b" data-bet-key="corner:${cornerB.join("-")}" data-label="${cornerB.join("-")}"></button>
-  `;
-}
-
-function createRowMarkup(row) {
-  const base = row * 3 + 1;
-  const numbers = [base + 2, base + 1, base];
-  return `
-    <div class="inside-row" data-row="${row + 1}">
-      <button class="bet-zone rail-zone rail-zone--street" data-bet-key="street:${base}-${base + 2}" data-label="street ${base}-${base + 2}">Street</button>
-      <div class="inside-row__numbers">
-        ${numbers.map(createNumberCell).join("")}
-        ${createHorizontalSplits(row)}
-      </div>
+    <div class="number-row ${rowClass}">
+      ${numbers.map(createNumberCell).join("")}
     </div>
   `;
 }
 
-function createDividerMarkup(row) {
-  if (row === 11) return "";
-  const start = row * 3 + 1;
-  const end = start + 5;
+function createVerticalSplitMarkup() {
+  const rows = [TOP_ROW, MIDDLE_ROW, BOTTOM_ROW];
+  const rowClasses = ["split-node--top", "split-node--middle", "split-node--bottom"];
+
+  return rows
+    .flatMap((row, rowIndex) =>
+      row.slice(0, -1).map((number, columnIndex) => {
+        const pair = [number, row[columnIndex + 1]].sort((a, b) => a - b);
+        return `
+          <button
+            class="bet-zone split-node split-node--vertical ${rowClasses[rowIndex]}"
+            style="--column:${columnIndex + 1}"
+            data-bet-key="split:${pair[0]}-${pair[1]}"
+            data-label="${pair[0]}-${pair[1]}"
+            data-overlay-label="${pair[0]}-${pair[1]}"
+          ></button>
+        `;
+      }),
+    )
+    .join("");
+}
+
+function createHorizontalSplitMarkup() {
+  return TOP_ROW.map((topNumber, columnIndex) => {
+    const topPair = [MIDDLE_ROW[columnIndex], topNumber].sort((a, b) => a - b);
+    const bottomPair = [BOTTOM_ROW[columnIndex], MIDDLE_ROW[columnIndex]].sort((a, b) => a - b);
+    return `
+      <button
+        class="bet-zone split-node split-node--horizontal split-node--between-top"
+        style="--column:${columnIndex + 1}"
+        data-bet-key="split:${topPair[0]}-${topPair[1]}"
+        data-label="${topPair[0]}-${topPair[1]}"
+        data-overlay-label="${topPair[0]}-${topPair[1]}"
+      ></button>
+      <button
+        class="bet-zone split-node split-node--horizontal split-node--between-bottom"
+        style="--column:${columnIndex + 1}"
+        data-bet-key="split:${bottomPair[0]}-${bottomPair[1]}"
+        data-label="${bottomPair[0]}-${bottomPair[1]}"
+        data-overlay-label="${bottomPair[0]}-${bottomPair[1]}"
+      ></button>
+    `;
+  }).join("");
+}
+
+function createCornerMarkup() {
+  return TOP_ROW.slice(0, -1)
+    .flatMap((topNumber, columnIndex) => {
+      const topCorner = [topNumber, TOP_ROW[columnIndex + 1], MIDDLE_ROW[columnIndex], MIDDLE_ROW[columnIndex + 1]].sort((a, b) => a - b);
+      const bottomCorner = [MIDDLE_ROW[columnIndex], MIDDLE_ROW[columnIndex + 1], BOTTOM_ROW[columnIndex], BOTTOM_ROW[columnIndex + 1]].sort((a, b) => a - b);
+
+      return [
+        `
+          <button
+            class="bet-zone corner-node corner-node--top"
+            style="--column:${columnIndex + 1}"
+            data-bet-key="corner:${topCorner.join("-")}"
+            data-label="${topCorner.join("-")}"
+            data-overlay-label="${topCorner.join("-")}"
+          ></button>
+        `,
+        `
+          <button
+            class="bet-zone corner-node corner-node--bottom"
+            style="--column:${columnIndex + 1}"
+            data-bet-key="corner:${bottomCorner.join("-")}"
+            data-label="${bottomCorner.join("-")}"
+            data-overlay-label="${bottomCorner.join("-")}"
+          ></button>
+        `,
+      ];
+    })
+    .join("");
+}
+
+function createStreetMarkup() {
+  return TOP_ROW.map((topNumber, columnIndex) => {
+    const start = topNumber - 2;
+    return `
+      <button
+        class="bet-zone street-node"
+        style="--column:${columnIndex + 1}"
+        data-bet-key="street:${start}-${topNumber}"
+        data-label="street ${start}-${topNumber}"
+        data-overlay-label="${start}-${topNumber}"
+      ></button>
+    `;
+  }).join("");
+}
+
+function createSixLineMarkup() {
+  return TOP_ROW.slice(0, -1)
+    .map((topNumber, columnIndex) => {
+      const start = topNumber - 2;
+      const end = TOP_ROW[columnIndex + 1];
+      return `
+        <button
+          class="bet-zone six-line-node"
+          style="--column:${columnIndex + 1}"
+          data-bet-key="sixLine:${start}-${end}"
+          data-label="six line ${start}-${end}"
+          data-overlay-label="${start}-${end}"
+        ></button>
+      `;
+    })
+    .join("");
+}
+
+function createColumnMarkup() {
   return `
-    <div class="inside-divider">
-      <button class="bet-zone rail-zone rail-zone--six" data-bet-key="sixLine:${start}-${end}" data-label="six line ${start}-${end}">6 line</button>
-      <div class="inside-divider__grid">
-        ${createVerticalSplits(row)}
-        ${createCorners(row)}
-      </div>
+    <div class="column-strip">
+      <button class="bet-zone column-zone" data-bet-key="column:column-3" data-label="column 3">2 to 1</button>
+      <button class="bet-zone column-zone" data-bet-key="column:column-2" data-label="column 2">2 to 1</button>
+      <button class="bet-zone column-zone" data-bet-key="column:column-1" data-label="column 1">2 to 1</button>
+    </div>
+  `;
+}
+
+function createZeroMarkup() {
+  return `
+    <div class="zero-lane">
+      <button class="bet-zone zero-zone zero-zone--main" data-bet-key="straight:0" data-label="0">
+        <span class="zero-zone__value">0</span>
+        <div class="chip-stack" data-chip-stack="straight:0"></div>
+      </button>
+      <button class="bet-zone split-node zero-split-node zero-split-node--top" data-bet-key="split:0-3" data-label="0-3" data-overlay-label="0-3"></button>
+      <button class="bet-zone split-node zero-split-node zero-split-node--middle" data-bet-key="split:0-2" data-label="0-2" data-overlay-label="0-2"></button>
+      <button class="bet-zone split-node zero-split-node zero-split-node--bottom" data-bet-key="split:0-1" data-label="0-1" data-overlay-label="0-1"></button>
+      <button class="bet-zone zero-street-node zero-street-node--top" data-bet-key="street:0-2-3" data-label="0-2-3" data-overlay-label="0-2-3"></button>
+      <button class="bet-zone zero-street-node zero-street-node--bottom" data-bet-key="street:0-1-2" data-label="0-1-2" data-overlay-label="0-1-2"></button>
     </div>
   `;
 }
 
 function createTableMarkup() {
-  const rows = Array.from({ length: 12 }, (_, row) => createRowMarkup(row) + createDividerMarkup(row)).join("");
-
   return `
-    <section class="table-card glass-panel">
-      <div class="section-heading">
+    <section class="table-card">
+      <div class="table-card__header">
         <div>
-          <p class="eyebrow">Premium Table</p>
-          <h2>European Betting Surface</h2>
+          <p class="eyebrow">European Layout</p>
+          <h2>Traditional Betting Surface</h2>
         </div>
         <label class="overlay-toggle">
           <input type="checkbox" data-overlay-toggle />
@@ -1052,34 +1124,38 @@ function createTableMarkup() {
         </label>
       </div>
       <div class="roulette-table" data-overlay="off">
-        <div class="zero-complex">
-          <button class="bet-zone zero-zone zero-zone--main" data-bet-key="straight:0" data-label="0"><span>0</span><div class="chip-stack" data-chip-stack="straight:0"></div></button>
-          <button class="bet-zone zero-zone zero-zone--split-a" data-bet-key="split:0-3" data-label="0-3"></button>
-          <button class="bet-zone zero-zone zero-zone--split-b" data-bet-key="split:0-2" data-label="0-2"></button>
-          <button class="bet-zone zero-zone zero-zone--split-c" data-bet-key="split:0-1" data-label="0-1"></button>
-          <button class="bet-zone zero-zone zero-zone--street-a" data-bet-key="street:0-2-3" data-label="0-2-3"></button>
-          <button class="bet-zone zero-zone zero-zone--street-b" data-bet-key="street:0-1-2" data-label="0-1-2"></button>
-        </div>
-        <div class="inside-layout">
-          ${rows}
-        </div>
-        <div class="bottom-bets">
-          <div class="column-row">
-            <button class="bet-zone outside-zone" data-bet-key="column:column-3" data-label="column 3">2 to 1</button>
-            <button class="bet-zone outside-zone" data-bet-key="column:column-2" data-label="column 2">2 to 1</button>
-            <button class="bet-zone outside-zone" data-bet-key="column:column-1" data-label="column 1">2 to 1</button>
+        <div class="roulette-table__board">
+          <div class="inside-board">
+            ${createZeroMarkup()}
+            <div class="inside-board__main">
+              <div class="numbers-grid">
+                ${createRowMarkup(TOP_ROW, "number-row--top")}
+                ${createRowMarkup(MIDDLE_ROW, "number-row--middle")}
+                ${createRowMarkup(BOTTOM_ROW, "number-row--bottom")}
+                ${createVerticalSplitMarkup()}
+                ${createHorizontalSplitMarkup()}
+                ${createCornerMarkup()}
+                ${createStreetMarkup()}
+                ${createSixLineMarkup()}
+              </div>
+              ${createColumnMarkup()}
+            </div>
           </div>
           <div class="dozen-row">
-            <button class="bet-zone outside-zone" data-bet-key="dozen:dozen-1" data-label="dozen 1">1st 12</button>
-            <button class="bet-zone outside-zone" data-bet-key="dozen:dozen-2" data-label="dozen 2">2nd 12</button>
-            <button class="bet-zone outside-zone" data-bet-key="dozen:dozen-3" data-label="dozen 3">3rd 12</button>
+            <button class="bet-zone dozen-zone" data-bet-key="dozen:dozen-1" data-label="dozen 1">1st 12</button>
+            <button class="bet-zone dozen-zone" data-bet-key="dozen:dozen-2" data-label="dozen 2">2nd 12</button>
+            <button class="bet-zone dozen-zone" data-bet-key="dozen:dozen-3" data-label="dozen 3">3rd 12</button>
           </div>
           <div class="outside-row">
             <button class="bet-zone outside-zone" data-bet-key="low:low" data-label="1 to 18">1 to 18</button>
-            <button class="bet-zone outside-zone outside-zone--dark" data-bet-key="even:even" data-label="even">Even</button>
-            <button class="bet-zone outside-zone outside-zone--red" data-bet-key="red:red" data-label="red">Red</button>
-            <button class="bet-zone outside-zone outside-zone--dark" data-bet-key="black:black" data-label="black">Black</button>
-            <button class="bet-zone outside-zone outside-zone--dark" data-bet-key="odd:odd" data-label="odd">Odd</button>
+            <button class="bet-zone outside-zone" data-bet-key="even:even" data-label="even">Even</button>
+            <button class="bet-zone outside-zone outside-zone--symbol outside-zone--red" data-bet-key="red:red" data-label="red">
+              <span class="outside-zone__diamond outside-zone__diamond--red" aria-hidden="true"></span>
+            </button>
+            <button class="bet-zone outside-zone outside-zone--symbol outside-zone--dark" data-bet-key="black:black" data-label="black">
+              <span class="outside-zone__diamond outside-zone__diamond--black" aria-hidden="true"></span>
+            </button>
+            <button class="bet-zone outside-zone" data-bet-key="odd:odd" data-label="odd">Odd</button>
             <button class="bet-zone outside-zone" data-bet-key="high:high" data-label="19 to 36">19 to 36</button>
           </div>
         </div>
@@ -1273,10 +1349,11 @@ function createStatsMarkup(stats, session) {
 function appMarkup(settings) {
   return `
     <div class="shell">
-      <header class="topbar glass-panel">
+      <header class="topbar">
         <div class="brand-block">
-          <p class="eyebrow">Study Surface</p>
+          <p class="eyebrow">Casino Study Surface</p>
           <h1>${APP_TITLE}</h1>
+          <p class="brand-copy">Traditional table proportions, richer felt, and the same transparent engine underneath.</p>
         </div>
         <div class="hud">
           <article><span>Bankroll</span><strong data-bankroll></strong></article>
@@ -1292,60 +1369,72 @@ function appMarkup(settings) {
           <button class="primary-button" data-action="spin" title="Spin (Space)">Spin</button>
         </div>
       </header>
-      <main class="main-grid">
-        ${createWheelMarkup()}
-        ${createTableMarkup()}
-        <aside class="utility-card glass-panel">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">Session Controls</p>
-              <h2>Chips, Modes, and Notes</h2>
-            </div>
+      <main class="casino-layout">
+        <section class="casino-stage">
+          <div class="stage-rail">
+            <section class="chip-tray">
+              <div class="chip-tray__head">
+                <div>
+                  <p class="eyebrow">Chip Bank</p>
+                  <h2>Selection</h2>
+                </div>
+                <div class="segmented segmented--mode">
+                  <button class="segment-button" data-mode="tap">Tap</button>
+                  <button class="segment-button" data-mode="drag">Drag</button>
+                </div>
+              </div>
+              <div class="chip-rack" data-chip-row>
+                ${CHIP_VALUES.map((value) => `<button class="chip-button chip-button--${value}" data-chip-value="${value}"><span>${value}</span></button>`).join("")}
+              </div>
+            </section>
+            ${createWheelMarkup()}
           </div>
-          <section class="chip-picker">
-            <h3>Chip selection</h3>
-            <div class="chip-row" data-chip-row>
-              ${CHIP_VALUES.map((value) => `<button class="chip-button" data-chip-value="${value}">${value}</button>`).join("")}
-            </div>
-          </section>
-          <section class="mode-panel">
-            <h3>Bet mode</h3>
-            <div class="segmented">
-              <button class="segment-button" data-mode="tap">Tap to place</button>
-              <button class="segment-button" data-mode="drag">Drag chip</button>
-            </div>
-          </section>
-          <section class="prefs-panel">
-            <h3>Preferences</h3>
-            <label>Default bankroll <input type="number" min="100" step="100" value="${settings.bankrollDefault}" data-setting="bankrollDefault" /></label>
-            <label>Animation speed
-              <select data-setting="animationSpeed">
-                <option value="relaxed">Relaxed</option>
-                <option value="normal">Normal</option>
-                <option value="brisk">Brisk</option>
-              </select>
-            </label>
-            <label class="toggle-row"><input type="checkbox" data-setting="persistSession" ${settings.persistSession ? "checked" : ""} /> Preserve session on refresh</label>
-            <button class="ghost-button" data-action="reset-session">Reset session</button>
-          </section>
-          <section class="recent-panel">
-            <h3>Recent results</h3>
+          <div class="board-wing">
+            ${createTableMarkup()}
+          </div>
+        </section>
+        <section class="dashboard-grid">
+          <article class="dashboard-card">
+            <p class="eyebrow">Recent Spins</p>
+            <h3>Latest Results</h3>
             <div class="recent-results-strip" data-recent-strip></div>
-          </section>
-          <section class="summary-panel">
-            <h3>Active bets</h3>
+          </article>
+          <article class="dashboard-card">
+            <p class="eyebrow">Bets On The Felt</p>
+            <h3>Active Layout</h3>
             <div class="bet-summary" data-bet-summary></div>
-          </section>
-          <section class="notes-panel">
-            <h3>Session notes</h3>
-            <ul class="compact-list">
-              <li>Every spin is independent.</li>
-              <li>House edge is the normal European single-zero edge.</li>
-              <li>Hot/cold displays are descriptive, not predictive.</li>
-              <li>Use overlay mode to study split, corner, street, and six-line targets.</li>
-            </ul>
-          </section>
-        </aside>
+          </article>
+          <aside class="utility-card">
+            <div class="section-heading section-heading--stacked">
+              <div>
+                <p class="eyebrow">Session Controls</p>
+                <h2>Preferences And Notes</h2>
+              </div>
+            </div>
+            <section class="prefs-panel">
+              <h3>Preferences</h3>
+              <label>Default bankroll <input type="number" min="100" step="100" value="${settings.bankrollDefault}" data-setting="bankrollDefault" /></label>
+              <label>Animation speed
+                <select data-setting="animationSpeed">
+                  <option value="relaxed">Relaxed</option>
+                  <option value="normal">Normal</option>
+                  <option value="brisk">Brisk</option>
+                </select>
+              </label>
+              <label class="toggle-row"><input type="checkbox" data-setting="persistSession" ${settings.persistSession ? "checked" : ""} /> Preserve session on refresh</label>
+              <button class="ghost-button utility-button" data-action="reset-session">Reset session</button>
+            </section>
+            <section class="notes-panel">
+              <h3>House Notes</h3>
+              <ul class="compact-list">
+                <li>Every spin is independent.</li>
+                <li>House edge is the standard European single-zero edge.</li>
+                <li>Hot and cold displays are descriptive, not predictive.</li>
+                <li>Study overlay reveals splits, corners, streets, and six lines.</li>
+              </ul>
+            </section>
+          </aside>
+        </section>
       </main>
       ${createModalMarkup()}
       <div class="drag-ghost" hidden data-drag-ghost></div>
@@ -1647,4 +1736,5 @@ function createApp(root) {
 // src/main.js
 
 createApp(document.querySelector("#app"));
+
 

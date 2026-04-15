@@ -157,10 +157,11 @@ function createStatsMarkup(stats, session) {
 function appMarkup(settings) {
   return `
     <div class="shell">
-      <header class="topbar glass-panel">
+      <header class="topbar">
         <div class="brand-block">
-          <p class="eyebrow">Study Surface</p>
+          <p class="eyebrow">Casino Study Surface</p>
           <h1>${APP_TITLE}</h1>
+          <p class="brand-copy">Traditional table proportions, richer felt, and the same transparent engine underneath.</p>
         </div>
         <div class="hud">
           <article><span>Bankroll</span><strong data-bankroll></strong></article>
@@ -176,60 +177,72 @@ function appMarkup(settings) {
           <button class="primary-button" data-action="spin" title="Spin (Space)">Spin</button>
         </div>
       </header>
-      <main class="main-grid">
-        ${createWheelMarkup()}
-        ${createTableMarkup()}
-        <aside class="utility-card glass-panel">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">Session Controls</p>
-              <h2>Chips, Modes, and Notes</h2>
-            </div>
+      <main class="casino-layout">
+        <section class="casino-stage">
+          <div class="stage-rail">
+            <section class="chip-tray">
+              <div class="chip-tray__head">
+                <div>
+                  <p class="eyebrow">Chip Bank</p>
+                  <h2>Selection</h2>
+                </div>
+                <div class="segmented segmented--mode">
+                  <button class="segment-button" data-mode="tap">Tap</button>
+                  <button class="segment-button" data-mode="drag">Drag</button>
+                </div>
+              </div>
+              <div class="chip-rack" data-chip-row>
+                ${CHIP_VALUES.map((value) => `<button class="chip-button chip-button--${value}" data-chip-value="${value}"><span>${value}</span></button>`).join("")}
+              </div>
+            </section>
+            ${createWheelMarkup()}
           </div>
-          <section class="chip-picker">
-            <h3>Chip selection</h3>
-            <div class="chip-row" data-chip-row>
-              ${CHIP_VALUES.map((value) => `<button class="chip-button" data-chip-value="${value}">${value}</button>`).join("")}
-            </div>
-          </section>
-          <section class="mode-panel">
-            <h3>Bet mode</h3>
-            <div class="segmented">
-              <button class="segment-button" data-mode="tap">Tap to place</button>
-              <button class="segment-button" data-mode="drag">Drag chip</button>
-            </div>
-          </section>
-          <section class="prefs-panel">
-            <h3>Preferences</h3>
-            <label>Default bankroll <input type="number" min="100" step="100" value="${settings.bankrollDefault}" data-setting="bankrollDefault" /></label>
-            <label>Animation speed
-              <select data-setting="animationSpeed">
-                <option value="relaxed">Relaxed</option>
-                <option value="normal">Normal</option>
-                <option value="brisk">Brisk</option>
-              </select>
-            </label>
-            <label class="toggle-row"><input type="checkbox" data-setting="persistSession" ${settings.persistSession ? "checked" : ""} /> Preserve session on refresh</label>
-            <button class="ghost-button" data-action="reset-session">Reset session</button>
-          </section>
-          <section class="recent-panel">
-            <h3>Recent results</h3>
+          <div class="board-wing">
+            ${createTableMarkup()}
+          </div>
+        </section>
+        <section class="dashboard-grid">
+          <article class="dashboard-card">
+            <p class="eyebrow">Recent Spins</p>
+            <h3>Latest Results</h3>
             <div class="recent-results-strip" data-recent-strip></div>
-          </section>
-          <section class="summary-panel">
-            <h3>Active bets</h3>
+          </article>
+          <article class="dashboard-card">
+            <p class="eyebrow">Bets On The Felt</p>
+            <h3>Active Layout</h3>
             <div class="bet-summary" data-bet-summary></div>
-          </section>
-          <section class="notes-panel">
-            <h3>Session notes</h3>
-            <ul class="compact-list">
-              <li>Every spin is independent.</li>
-              <li>House edge is the normal European single-zero edge.</li>
-              <li>Hot/cold displays are descriptive, not predictive.</li>
-              <li>Use overlay mode to study split, corner, street, and six-line targets.</li>
-            </ul>
-          </section>
-        </aside>
+          </article>
+          <aside class="utility-card">
+            <div class="section-heading section-heading--stacked">
+              <div>
+                <p class="eyebrow">Session Controls</p>
+                <h2>Preferences And Notes</h2>
+              </div>
+            </div>
+            <section class="prefs-panel">
+              <h3>Preferences</h3>
+              <label>Default bankroll <input type="number" min="100" step="100" value="${settings.bankrollDefault}" data-setting="bankrollDefault" /></label>
+              <label>Animation speed
+                <select data-setting="animationSpeed">
+                  <option value="relaxed">Relaxed</option>
+                  <option value="normal">Normal</option>
+                  <option value="brisk">Brisk</option>
+                </select>
+              </label>
+              <label class="toggle-row"><input type="checkbox" data-setting="persistSession" ${settings.persistSession ? "checked" : ""} /> Preserve session on refresh</label>
+              <button class="ghost-button utility-button" data-action="reset-session">Reset session</button>
+            </section>
+            <section class="notes-panel">
+              <h3>House Notes</h3>
+              <ul class="compact-list">
+                <li>Every spin is independent.</li>
+                <li>House edge is the standard European single-zero edge.</li>
+                <li>Hot and cold displays are descriptive, not predictive.</li>
+                <li>Study overlay reveals splits, corners, streets, and six lines.</li>
+              </ul>
+            </section>
+          </aside>
+        </section>
       </main>
       ${createModalMarkup()}
       <div class="drag-ghost" hidden data-drag-ghost></div>
