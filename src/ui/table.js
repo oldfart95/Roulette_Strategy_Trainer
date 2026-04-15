@@ -1,154 +1,210 @@
 import { getBetDisplayLabel } from "../engine/bets.js";
 import { RED_NUMBERS } from "../config.js";
 
+const TOP_ROW = [3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36];
+const MIDDLE_ROW = [2, 5, 8, 11, 14, 17, 20, 23, 26, 29, 32, 35];
+const BOTTOM_ROW = [1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34];
+
 function createNumberCell(number) {
-  const colorClass = number === 0 ? "green" : RED_NUMBERS.has(number) ? "red" : "black";
+  const colorClass = RED_NUMBERS.has(number) ? "red" : "black";
   return `
     <button class="bet-zone number-cell number-cell--${colorClass}" data-bet-key="straight:${number}" data-label="${number}">
-      <span>${number}</span>
+      <span class="number-cell__disc">
+        <span class="number-cell__value">${number}</span>
+      </span>
       <div class="chip-stack" data-chip-stack="straight:${number}"></div>
     </button>
   `;
 }
 
-function createHorizontalSplits(row) {
-  const base = row * 3 + 1;
-  const left = base + 2;
-  const middle = base + 1;
-  const right = base;
-  const firstPair = [middle, left].sort((a, b) => a - b);
-  const secondPair = [right, middle].sort((a, b) => a - b);
+function createRowMarkup(numbers, rowClass) {
   return `
-    <button class="bet-zone split-zone split-zone--h split-zone--h-a" data-bet-key="split:${firstPair[0]}-${firstPair[1]}" data-label="${firstPair[0]}-${firstPair[1]}" data-overlay-label="${firstPair[0]}-${firstPair[1]}"></button>
-    <button class="bet-zone split-zone split-zone--h split-zone--h-b" data-bet-key="split:${secondPair[0]}-${secondPair[1]}" data-label="${secondPair[0]}-${secondPair[1]}" data-overlay-label="${secondPair[0]}-${secondPair[1]}"></button>
-  `;
-}
-
-function createVerticalSplits(row) {
-  if (row === 11) return "";
-  const base = row * 3 + 1;
-  const nextBase = base + 3;
-  const current = [base + 2, base + 1, base];
-  const next = [nextBase + 2, nextBase + 1, nextBase];
-  const pairA = [current[0], next[0]].sort((a, b) => a - b);
-  const pairB = [current[1], next[1]].sort((a, b) => a - b);
-  const pairC = [current[2], next[2]].sort((a, b) => a - b);
-
-  return `
-    <button class="bet-zone split-zone split-zone--v split-zone--v-a" data-bet-key="split:${pairA[0]}-${pairA[1]}" data-label="${pairA[0]}-${pairA[1]}" data-overlay-label="${pairA[0]}-${pairA[1]}"></button>
-    <button class="bet-zone split-zone split-zone--v split-zone--v-b" data-bet-key="split:${pairB[0]}-${pairB[1]}" data-label="${pairB[0]}-${pairB[1]}" data-overlay-label="${pairB[0]}-${pairB[1]}"></button>
-    <button class="bet-zone split-zone split-zone--v split-zone--v-c" data-bet-key="split:${pairC[0]}-${pairC[1]}" data-label="${pairC[0]}-${pairC[1]}" data-overlay-label="${pairC[0]}-${pairC[1]}"></button>
-  `;
-}
-
-function createCorners(row) {
-  if (row === 11) return "";
-  const base = row * 3 + 1;
-  const nextBase = base + 3;
-  const current = [base + 2, base + 1, base];
-  const next = [nextBase + 2, nextBase + 1, nextBase];
-  const cornerA = [current[0], current[1], next[0], next[1]].sort((a, b) => a - b);
-  const cornerB = [current[1], current[2], next[1], next[2]].sort((a, b) => a - b);
-
-  return `
-    <button class="bet-zone corner-zone corner-zone--a" data-bet-key="corner:${cornerA.join("-")}" data-label="${cornerA.join("-")}" data-overlay-label="${cornerA.join("-")}"></button>
-    <button class="bet-zone corner-zone corner-zone--b" data-bet-key="corner:${cornerB.join("-")}" data-label="${cornerB.join("-")}" data-overlay-label="${cornerB.join("-")}"></button>
-  `;
-}
-
-function createRowMarkup(row) {
-  const base = row * 3 + 1;
-  const numbers = [base + 2, base + 1, base];
-  return `
-    <div class="inside-row" data-row="${row + 1}">
-      <button class="bet-zone rail-zone rail-zone--street" data-bet-key="street:${base}-${base + 2}" data-label="street ${base}-${base + 2}" data-overlay-label="${base}-${base + 2}">Street</button>
-      <div class="inside-row__numbers">
-        ${numbers.map(createNumberCell).join("")}
-        ${createHorizontalSplits(row)}
-      </div>
+    <div class="number-row ${rowClass}">
+      ${numbers.map(createNumberCell).join("")}
     </div>
   `;
 }
 
-function createDividerMarkup(row) {
-  if (row === 11) return "";
-  const start = row * 3 + 1;
-  const end = start + 5;
+function createVerticalSplitMarkup() {
+  const rows = [TOP_ROW, MIDDLE_ROW, BOTTOM_ROW];
+  const rowClasses = ["split-node--top", "split-node--middle", "split-node--bottom"];
+
+  return rows
+    .flatMap((row, rowIndex) =>
+      row.slice(0, -1).map((number, columnIndex) => {
+        const pair = [number, row[columnIndex + 1]].sort((a, b) => a - b);
+        return `
+          <button
+            class="bet-zone split-node split-node--vertical ${rowClasses[rowIndex]}"
+            style="--column:${columnIndex + 1}"
+            data-bet-key="split:${pair[0]}-${pair[1]}"
+            data-label="${pair[0]}-${pair[1]}"
+            data-overlay-label="${pair[0]}-${pair[1]}"
+          ></button>
+        `;
+      }),
+    )
+    .join("");
+}
+
+function createHorizontalSplitMarkup() {
+  return TOP_ROW.map((topNumber, columnIndex) => {
+    const topPair = [MIDDLE_ROW[columnIndex], topNumber].sort((a, b) => a - b);
+    const bottomPair = [BOTTOM_ROW[columnIndex], MIDDLE_ROW[columnIndex]].sort((a, b) => a - b);
+    return `
+      <button
+        class="bet-zone split-node split-node--horizontal split-node--between-top"
+        style="--column:${columnIndex + 1}"
+        data-bet-key="split:${topPair[0]}-${topPair[1]}"
+        data-label="${topPair[0]}-${topPair[1]}"
+        data-overlay-label="${topPair[0]}-${topPair[1]}"
+      ></button>
+      <button
+        class="bet-zone split-node split-node--horizontal split-node--between-bottom"
+        style="--column:${columnIndex + 1}"
+        data-bet-key="split:${bottomPair[0]}-${bottomPair[1]}"
+        data-label="${bottomPair[0]}-${bottomPair[1]}"
+        data-overlay-label="${bottomPair[0]}-${bottomPair[1]}"
+      ></button>
+    `;
+  }).join("");
+}
+
+function createCornerMarkup() {
+  return TOP_ROW.slice(0, -1)
+    .flatMap((topNumber, columnIndex) => {
+      const topCorner = [topNumber, TOP_ROW[columnIndex + 1], MIDDLE_ROW[columnIndex], MIDDLE_ROW[columnIndex + 1]].sort((a, b) => a - b);
+      const bottomCorner = [MIDDLE_ROW[columnIndex], MIDDLE_ROW[columnIndex + 1], BOTTOM_ROW[columnIndex], BOTTOM_ROW[columnIndex + 1]].sort((a, b) => a - b);
+
+      return [
+        `
+          <button
+            class="bet-zone corner-node corner-node--top"
+            style="--column:${columnIndex + 1}"
+            data-bet-key="corner:${topCorner.join("-")}"
+            data-label="${topCorner.join("-")}"
+            data-overlay-label="${topCorner.join("-")}"
+          ></button>
+        `,
+        `
+          <button
+            class="bet-zone corner-node corner-node--bottom"
+            style="--column:${columnIndex + 1}"
+            data-bet-key="corner:${bottomCorner.join("-")}"
+            data-label="${bottomCorner.join("-")}"
+            data-overlay-label="${bottomCorner.join("-")}"
+          ></button>
+        `,
+      ];
+    })
+    .join("");
+}
+
+function createStreetMarkup() {
+  return TOP_ROW.map((topNumber, columnIndex) => {
+    const start = topNumber - 2;
+    return `
+      <button
+        class="bet-zone street-node"
+        style="--column:${columnIndex + 1}"
+        data-bet-key="street:${start}-${topNumber}"
+        data-label="street ${start}-${topNumber}"
+        data-overlay-label="${start}-${topNumber}"
+      ></button>
+    `;
+  }).join("");
+}
+
+function createSixLineMarkup() {
+  return TOP_ROW.slice(0, -1)
+    .map((topNumber, columnIndex) => {
+      const start = topNumber - 2;
+      const end = TOP_ROW[columnIndex + 1];
+      return `
+        <button
+          class="bet-zone six-line-node"
+          style="--column:${columnIndex + 1}"
+          data-bet-key="sixLine:${start}-${end}"
+          data-label="six line ${start}-${end}"
+          data-overlay-label="${start}-${end}"
+        ></button>
+      `;
+    })
+    .join("");
+}
+
+function createColumnMarkup() {
   return `
-    <div class="inside-divider">
-      <button class="bet-zone rail-zone rail-zone--six" data-bet-key="sixLine:${start}-${end}" data-label="six line ${start}-${end}" data-overlay-label="${start}-${end}">6 line</button>
-      <div class="inside-divider__grid">
-        ${createVerticalSplits(row)}
-        ${createCorners(row)}
-      </div>
+    <div class="column-strip">
+      <button class="bet-zone column-zone" data-bet-key="column:column-3" data-label="column 3">2 to 1</button>
+      <button class="bet-zone column-zone" data-bet-key="column:column-2" data-label="column 2">2 to 1</button>
+      <button class="bet-zone column-zone" data-bet-key="column:column-1" data-label="column 1">2 to 1</button>
+    </div>
+  `;
+}
+
+function createZeroMarkup() {
+  return `
+    <div class="zero-lane">
+      <button class="bet-zone zero-zone zero-zone--main" data-bet-key="straight:0" data-label="0">
+        <span class="zero-zone__value">0</span>
+        <div class="chip-stack" data-chip-stack="straight:0"></div>
+      </button>
+      <button class="bet-zone split-node zero-split-node zero-split-node--top" data-bet-key="split:0-3" data-label="0-3" data-overlay-label="0-3"></button>
+      <button class="bet-zone split-node zero-split-node zero-split-node--middle" data-bet-key="split:0-2" data-label="0-2" data-overlay-label="0-2"></button>
+      <button class="bet-zone split-node zero-split-node zero-split-node--bottom" data-bet-key="split:0-1" data-label="0-1" data-overlay-label="0-1"></button>
+      <button class="bet-zone zero-street-node zero-street-node--top" data-bet-key="street:0-2-3" data-label="0-2-3" data-overlay-label="0-2-3"></button>
+      <button class="bet-zone zero-street-node zero-street-node--bottom" data-bet-key="street:0-1-2" data-label="0-1-2" data-overlay-label="0-1-2"></button>
     </div>
   `;
 }
 
 export function createTableMarkup() {
-  const rows = Array.from({ length: 12 }, (_, row) => createRowMarkup(row) + createDividerMarkup(row)).join("");
-
   return `
-    <section class="table-card glass-panel">
-      <div class="section-heading">
+    <section class="table-card">
+      <div class="table-card__header">
         <div>
-          <p class="eyebrow">Premium Table</p>
-          <h2>European Betting Surface</h2>
+          <p class="eyebrow">European Layout</p>
+          <h2>Traditional Betting Surface</h2>
         </div>
         <label class="overlay-toggle">
           <input type="checkbox" data-overlay-toggle />
           <span>Study overlay</span>
         </label>
       </div>
-      <div class="table-key" aria-hidden="true">
-        <span class="table-key__item"><i class="table-key__swatch table-key__swatch--inside"></i>Inside grid</span>
-        <span class="table-key__item"><i class="table-key__swatch table-key__swatch--split"></i>Split and corner dots</span>
-        <span class="table-key__item"><i class="table-key__swatch table-key__swatch--outside"></i>Dozens, columns, and outside bets</span>
-      </div>
       <div class="roulette-table" data-overlay="off">
-        <div class="table-band table-band--top" aria-hidden="true">
-          <span>Zero section</span>
-          <span>Inside numbers</span>
-          <span>Outside bets</span>
-        </div>
-        <div class="zero-complex">
-          <button class="bet-zone zero-zone zero-zone--main" data-bet-key="straight:0" data-label="0"><span>0</span><div class="chip-stack" data-chip-stack="straight:0"></div></button>
-          <button class="bet-zone zero-zone zero-zone--split-a" data-bet-key="split:0-3" data-label="0-3" data-overlay-label="0-3"></button>
-          <button class="bet-zone zero-zone zero-zone--split-b" data-bet-key="split:0-2" data-label="0-2" data-overlay-label="0-2"></button>
-          <button class="bet-zone zero-zone zero-zone--split-c" data-bet-key="split:0-1" data-label="0-1" data-overlay-label="0-1"></button>
-          <button class="bet-zone zero-zone zero-zone--street-a" data-bet-key="street:0-2-3" data-label="0-2-3" data-overlay-label="0-2-3"></button>
-          <button class="bet-zone zero-zone zero-zone--street-b" data-bet-key="street:0-1-2" data-label="0-1-2" data-overlay-label="0-1-2"></button>
-        </div>
-        <div class="inside-layout">
-          <div class="inside-layout__guide inside-layout__guide--columns" aria-hidden="true">
-            <span>3rd column</span>
-            <span>2nd column</span>
-            <span>1st column</span>
-          </div>
-          ${rows}
-        </div>
-        <div class="bottom-bets">
-          <div class="table-band table-band--bottom" aria-hidden="true">
-            <span>Columns</span>
-            <span>Dozens</span>
-            <span>Even money</span>
-          </div>
-          <div class="column-row">
-            <button class="bet-zone outside-zone" data-bet-key="column:column-3" data-label="column 3">2 to 1</button>
-            <button class="bet-zone outside-zone" data-bet-key="column:column-2" data-label="column 2">2 to 1</button>
-            <button class="bet-zone outside-zone" data-bet-key="column:column-1" data-label="column 1">2 to 1</button>
+        <div class="roulette-table__board">
+          <div class="inside-board">
+            ${createZeroMarkup()}
+            <div class="inside-board__main">
+              <div class="numbers-grid">
+                ${createRowMarkup(TOP_ROW, "number-row--top")}
+                ${createRowMarkup(MIDDLE_ROW, "number-row--middle")}
+                ${createRowMarkup(BOTTOM_ROW, "number-row--bottom")}
+                ${createVerticalSplitMarkup()}
+                ${createHorizontalSplitMarkup()}
+                ${createCornerMarkup()}
+                ${createStreetMarkup()}
+                ${createSixLineMarkup()}
+              </div>
+              ${createColumnMarkup()}
+            </div>
           </div>
           <div class="dozen-row">
-            <button class="bet-zone outside-zone" data-bet-key="dozen:dozen-1" data-label="dozen 1">1st 12</button>
-            <button class="bet-zone outside-zone" data-bet-key="dozen:dozen-2" data-label="dozen 2">2nd 12</button>
-            <button class="bet-zone outside-zone" data-bet-key="dozen:dozen-3" data-label="dozen 3">3rd 12</button>
+            <button class="bet-zone dozen-zone" data-bet-key="dozen:dozen-1" data-label="dozen 1">1st 12</button>
+            <button class="bet-zone dozen-zone" data-bet-key="dozen:dozen-2" data-label="dozen 2">2nd 12</button>
+            <button class="bet-zone dozen-zone" data-bet-key="dozen:dozen-3" data-label="dozen 3">3rd 12</button>
           </div>
           <div class="outside-row">
             <button class="bet-zone outside-zone" data-bet-key="low:low" data-label="1 to 18">1 to 18</button>
-            <button class="bet-zone outside-zone outside-zone--dark" data-bet-key="even:even" data-label="even">Even</button>
-            <button class="bet-zone outside-zone outside-zone--red" data-bet-key="red:red" data-label="red">Red</button>
-            <button class="bet-zone outside-zone outside-zone--dark" data-bet-key="black:black" data-label="black">Black</button>
-            <button class="bet-zone outside-zone outside-zone--dark" data-bet-key="odd:odd" data-label="odd">Odd</button>
+            <button class="bet-zone outside-zone" data-bet-key="even:even" data-label="even">Even</button>
+            <button class="bet-zone outside-zone outside-zone--symbol outside-zone--red" data-bet-key="red:red" data-label="red">
+              <span class="outside-zone__diamond outside-zone__diamond--red" aria-hidden="true"></span>
+            </button>
+            <button class="bet-zone outside-zone outside-zone--symbol outside-zone--dark" data-bet-key="black:black" data-label="black">
+              <span class="outside-zone__diamond outside-zone__diamond--black" aria-hidden="true"></span>
+            </button>
+            <button class="bet-zone outside-zone" data-bet-key="odd:odd" data-label="odd">Odd</button>
             <button class="bet-zone outside-zone" data-bet-key="high:high" data-label="19 to 36">19 to 36</button>
           </div>
         </div>
