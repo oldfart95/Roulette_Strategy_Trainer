@@ -1350,12 +1350,11 @@ function appMarkup(settings) {
   return `
     <div class="shell">
       <header class="topbar">
-        <div class="brand-block">
+        <div class="brand-block brand-block--compact">
           <p class="eyebrow">Casino Study Surface</p>
           <h1>${APP_TITLE}</h1>
-          <p class="brand-copy">Traditional table proportions, richer felt, and the same transparent engine underneath.</p>
         </div>
-        <div class="hud">
+        <div class="hud hud--compact">
           <article><span>Bankroll</span><strong data-bankroll></strong></article>
           <article><span>Total bet</span><strong data-total-bet></strong></article>
           <article><span>Last result</span><strong data-last-result>Waiting</strong></article>
@@ -1438,7 +1437,7 @@ function appMarkup(settings) {
       </main>
       ${createModalMarkup()}
       <div class="drag-ghost" hidden data-drag-ghost></div>
-      <footer class="footer-note">Keyboard: Space spin, Z or Backspace undo, C clear, R repeat, H help, S stats.</footer>
+      <footer class="footer-note">Space spin. Z undo. C clear. R repeat. H help. S stats.</footer>
     </div>
   `;
 }
