@@ -25,6 +25,7 @@ export function loadSession(settings) {
   return {
     ...createInitialSession(settings),
     ...saved,
+    wheelMode: saved.wheelMode ?? settings.wheelMode,
     locked: false,
     actionStack: [],
     activeBets: saved.activeBets ?? [],
@@ -36,7 +37,10 @@ export function loadSession(settings) {
 }
 
 export function saveSession(session, settings) {
-  if (!settings.persistSession) return;
+  if (!settings.persistSession) {
+    localStorage.removeItem(STORAGE_KEYS.session);
+    return;
+  }
   localStorage.setItem(STORAGE_KEYS.session, JSON.stringify(session));
 }
 

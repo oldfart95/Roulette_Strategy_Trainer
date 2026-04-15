@@ -1,12 +1,12 @@
-import { WHEEL_ORDER } from "../config.js";
+import { getWheelOrder } from "../data/wheel.js";
 
 export function secureRandomIndex(length) {
   if (!window.crypto?.getRandomValues) {
     throw new Error("Secure browser randomness is unavailable.");
   }
 
-  const maxUint = 0xffffffff;
-  const biasLimit = maxUint - (maxUint % length);
+  const maxExclusive = 0x100000000;
+  const biasLimit = maxExclusive - (maxExclusive % length);
   const buffer = new Uint32Array(1);
 
   while (true) {
@@ -18,11 +18,13 @@ export function secureRandomIndex(length) {
   }
 }
 
-export function generateSpin() {
-  const wheelIndex = secureRandomIndex(WHEEL_ORDER.length);
+export function generateSpin(wheelMode = "european") {
+  const wheelOrder = getWheelOrder(wheelMode);
+  const wheelIndex = secureRandomIndex(wheelOrder.length);
   return {
     wheelIndex,
-    number: WHEEL_ORDER[wheelIndex],
+    number: wheelOrder[wheelIndex],
+    wheelMode,
     timestamp: Date.now(),
     source: "window.crypto.getRandomValues",
   };

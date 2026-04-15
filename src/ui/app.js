@@ -1,4 +1,4 @@
-import { ANIMATION_PRESETS, APP_TITLE, CHIP_VALUES } from "../config.js";
+import { ANIMATION_PRESETS, APP_TITLE, CHIP_VALUES, HOUSE_EDGES, WHEEL_MODE_LABELS } from "../config.js";
 import { getNumberColor } from "../data/wheel.js";
 import { getBetDisplayLabel } from "../engine/bets.js";
 import { startSpin } from "../engine/game.js";
@@ -35,7 +35,7 @@ function groupBets(activeBets) {
   return map;
 }
 
-function createStatsMarkup(stats, session) {
+function createStatsMarkup(stats, session, settings) {
   return `
     <div class="stats-layout">
       <section class="stats-simple">
@@ -147,7 +147,7 @@ function createStatsMarkup(stats, session) {
         </article>
         <article class="stats-panel">
           <h3>Expected Value Note</h3>
-          <p>European roulette carries a house edge of about 2.70%. In a fair wheel that edge stays fixed regardless of your staking pattern. Progressions can change the shape of wins and losses, but not the long-run expectation.</p>
+          <p>${WHEEL_MODE_LABELS[settings.wheelMode]} carries a house edge of about ${HOUSE_EDGES[settings.wheelMode].toFixed(2)}%. In a fair wheel that edge stays fixed regardless of your staking pattern. Progressions can change the shape of wins and losses, but not the long-run expectation.</p>
         </article>
       </section>
     </div>
@@ -166,14 +166,6 @@ function appMarkup(settings) {
           <article><span>Bankroll</span><strong data-bankroll></strong></article>
           <article><span>Total bet</span><strong data-total-bet></strong></article>
           <article><span>Last result</span><strong data-last-result>Waiting</strong></article>
-        </div>
-        <div class="topbar-actions">
-          <button class="ghost-button" data-action="undo" title="Undo latest chip (Z / Backspace)">Undo</button>
-          <button class="ghost-button" data-action="clear" title="Clear all current bets (C)">Clear</button>
-          <button class="ghost-button" data-action="repeat" title="Repeat last completed layout (R)">Repeat</button>
-          <button class="ghost-button" data-action="help" title="Open help (H)">Help</button>
-          <button class="ghost-button" data-action="stats" title="Open stats (S)">Stats</button>
-          <button class="primary-button" data-action="spin" title="Spin (Space)">Spin</button>
         </div>
       </header>
       <main class="casino-layout">
@@ -194,10 +186,19 @@ function appMarkup(settings) {
                 ${CHIP_VALUES.map((value) => `<button class="chip-button chip-button--${value}" data-chip-value="${value}"><span>${value}</span></button>`).join("")}
               </div>
             </section>
-            ${createWheelMarkup()}
+            ${createWheelMarkup(settings.wheelMode)}
           </div>
           <div class="board-wing">
-            ${createTableMarkup()}
+            ${createTableMarkup(settings.wheelMode)}
+            <div class="board-actions" aria-label="Table controls">
+              <button class="ghost-button" data-action="undo" title="Undo latest chip (Z / Backspace)">Undo</button>
+              <button class="ghost-button" data-action="clear" title="Clear all current bets (C)">Clear</button>
+              <button class="ghost-button" data-action="repeat" title="Duplicate the current layout or restore the last one (R)">Repeat</button>
+              <button class="ghost-button" data-action="rebet" title="Rebet the last completed layout">Rebet</button>
+              <button class="ghost-button" data-action="help" title="Open help (H)">Help</button>
+              <button class="ghost-button" data-action="stats" title="Open stats (S)">Stats</button>
+              <button class="primary-button" data-action="spin" title="Spin (Space)">Spin</button>
+            </div>
           </div>
         </section>
         <section class="dashboard-grid">
@@ -228,6 +229,12 @@ function appMarkup(settings) {
                   <option value="brisk">Brisk</option>
                 </select>
               </label>
+              <label>Wheel
+                <select data-setting="wheelMode">
+                  <option value="european">European single-zero</option>
+                  <option value="american">American double-zero</option>
+                </select>
+              </label>
               <label class="toggle-row"><input type="checkbox" data-setting="persistSession" ${settings.persistSession ? "checked" : ""} /> Preserve session on refresh</label>
               <button class="ghost-button utility-button" data-action="reset-session">Reset session</button>
             </section>
@@ -235,9 +242,9 @@ function appMarkup(settings) {
               <h3>House Notes</h3>
               <ul class="compact-list">
                 <li>Every spin is independent.</li>
-                <li>House edge is the standard European single-zero edge.</li>
+                <li data-house-edge-note>House edge is shown for the selected fair wheel.</li>
                 <li>Hot and cold displays are descriptive, not predictive.</li>
-                <li>Study overlay reveals splits, corners, streets, and six lines.</li>
+                <li>Edge bets place directly on their live table seams.</li>
               </ul>
             </section>
           </aside>
@@ -245,19 +252,21 @@ function appMarkup(settings) {
       </main>
       ${createModalMarkup()}
       <div class="drag-ghost" hidden data-drag-ghost></div>
-      <footer class="footer-note">Space spin. Z undo. C clear. R repeat. H help. S stats.</footer>
+      <footer class="footer-note">Educational simulator only. No real money, no prizes, no fake near-miss behavior. Space spin. Z undo. C clear. R repeat. H help. S stats.</footer>
     </div>
   `;
 }
 
 export function createApp(root) {
   let settings = loadSettings();
+  settings.wheelMode = settings.wheelMode === "american" ? "american" : "european";
   settings.animationPreset = ANIMATION_PRESETS[settings.animationSpeed] ?? ANIMATION_PRESETS.normal;
   let session = loadSession(settings);
   session.fairnessLog = session.fairnessLog?.length ? session.fairnessLog : loadFairnessLog();
   let selectedChip = settings.preferredChipValue;
   let betMode = settings.preferredBetMode;
   let dragState = null;
+  let spinTimerId = null;
 
   root.innerHTML = appMarkup(settings);
 
@@ -274,12 +283,12 @@ export function createApp(root) {
     wheelHighlight: root.querySelector("[data-wheel-highlight]"),
     fairnessStrip: root.querySelector("[data-fairness-strip]"),
     table: root.querySelector(".roulette-table"),
-    overlayToggle: root.querySelector("[data-overlay-toggle]"),
     dragGhost: root.querySelector("[data-drag-ghost]"),
     modalShell: root.querySelector("[data-modal-shell]"),
     modalEyebrow: root.querySelector("[data-modal-eyebrow]"),
     modalTitle: root.querySelector("[data-modal-title]"),
     modalBody: root.querySelector("[data-modal-body]"),
+    houseEdgeNote: root.querySelector("[data-house-edge-note]"),
   };
 
   const modalElements = {
@@ -295,6 +304,16 @@ export function createApp(root) {
     saveFairnessLog(session.fairnessLog);
   }
 
+  function clearDragState() {
+    dragState = null;
+    elements.dragGhost.hidden = true;
+    root.querySelectorAll(".bet-zone.is-hovered").forEach((node) => node.classList.remove("is-hovered"));
+  }
+
+  function canMutateSession() {
+    return !session.locked;
+  }
+
   function applySettings() {
     settings.animationPreset = ANIMATION_PRESETS[settings.animationSpeed] ?? ANIMATION_PRESETS.normal;
   }
@@ -304,6 +323,7 @@ export function createApp(root) {
     elements.bankroll.textContent = currency(session.bankroll);
     elements.totalBet.textContent = currency(totalBet);
     elements.lastResult.textContent = session.lastOutcome ? `${session.lastOutcome.number} ${session.lastOutcome.color}` : "Waiting";
+    elements.houseEdgeNote.textContent = `${WHEEL_MODE_LABELS[settings.wheelMode]} house edge: ${HOUSE_EDGES[settings.wheelMode].toFixed(2)}%.`;
 
     root.querySelectorAll(".chip-button").forEach((button) => {
       button.classList.toggle("is-selected", Number(button.dataset.chipValue) === selectedChip);
@@ -330,10 +350,8 @@ export function createApp(root) {
           .join("")
       : `<p class="muted">No active bets yet. Select a chip and place bets on the table.</p>`;
 
-    elements.overlayToggle.checked = settings.showBetOverlay;
-    elements.table.dataset.overlay = settings.showBetOverlay ? "on" : "off";
-
     root.querySelector('[data-setting="animationSpeed"]').value = settings.animationSpeed;
+    root.querySelector('[data-setting="wheelMode"]').value = settings.wheelMode;
     root.querySelector('[data-setting="bankrollDefault"]').value = settings.bankrollDefault;
     root.querySelector('[data-setting="persistSession"]').checked = settings.persistSession;
   }
@@ -360,8 +378,9 @@ export function createApp(root) {
 
   function runSpin() {
     try {
-      const { spin, resolution } = startSpin(session);
+      const { spin, resolution } = startSpin(session, settings);
       session = lockSession(session);
+      clearDragState();
       render();
       animateWheel(
         {
@@ -373,7 +392,8 @@ export function createApp(root) {
         settings,
       );
 
-      window.setTimeout(() => {
+      if (spinTimerId) window.clearTimeout(spinTimerId);
+      spinTimerId = window.setTimeout(() => {
         settleWheel(
           {
             highlight: elements.wheelHighlight,
@@ -385,6 +405,7 @@ export function createApp(root) {
         session = settleSpin(session, spin, resolution);
         persist();
         render();
+        spinTimerId = null;
       }, settings.animationPreset.duration);
     } catch (error) {
       session = { ...session, locked: false };
@@ -406,9 +427,29 @@ export function createApp(root) {
     }
   }
 
+  function repeatActiveLayout() {
+    const source = session.activeBets.length ? session.activeBets : session.previousBetLayout;
+    if (session.locked || !source.length) return;
+    let next = session;
+    try {
+      for (const bet of source) {
+        next = placeBet(next, {
+          ...bet,
+          id: crypto.randomUUID(),
+          placedAt: Date.now(),
+        });
+      }
+      session = next;
+      persist();
+      render();
+    } catch (error) {
+      showError(error.message);
+    }
+  }
+
   function openStatsView() {
     const stats = computeStats(session);
-    openStats(modalElements, createStatsMarkup(stats, session));
+    openStats(modalElements, createStatsMarkup(stats, session, settings));
   }
 
   root.addEventListener("click", (event) => {
@@ -416,20 +457,24 @@ export function createApp(root) {
     if (actionButton) {
       const action = actionButton.dataset.action;
       if (action === "undo") {
+        if (!canMutateSession()) return;
         session = undoLastAction(session);
         persist();
         render();
       }
       if (action === "clear") {
+        if (!canMutateSession()) return;
         session = clearBets(session);
         persist();
         render();
       }
-      if (action === "repeat") repeatLayout();
+      if (action === "repeat") repeatActiveLayout();
+      if (action === "rebet") repeatLayout();
       if (action === "spin") runSpin();
       if (action === "help") openHelp(modalElements);
       if (action === "stats") openStatsView();
       if (action === "reset-session") {
+        if (!canMutateSession()) return;
         session = resetSession(session, settings);
         persist();
         render();
@@ -439,6 +484,7 @@ export function createApp(root) {
 
     const chipButton = event.target.closest("[data-chip-value]");
     if (chipButton) {
+      if (!canMutateSession()) return;
       selectedChip = Number(chipButton.dataset.chipValue);
       settings.preferredChipValue = selectedChip;
       persist();
@@ -448,6 +494,7 @@ export function createApp(root) {
 
     const modeButton = event.target.closest("[data-mode]");
     if (modeButton) {
+      if (!canMutateSession()) return;
       betMode = modeButton.dataset.mode;
       settings.preferredBetMode = betMode;
       persist();
@@ -468,20 +515,30 @@ export function createApp(root) {
 
   root.addEventListener("change", (event) => {
     const target = event.target;
+    if (session.locked) {
+      render();
+      return;
+    }
     if (target.dataset.setting === "bankrollDefault") settings.bankrollDefault = Math.max(100, Number(target.value) || 1000);
     if (target.dataset.setting === "animationSpeed") {
       settings.animationSpeed = target.value;
       applySettings();
     }
+    if (target.dataset.setting === "wheelMode") {
+      settings.wheelMode = target.value === "american" ? "american" : "european";
+      session = resetSession(session, settings);
+      persist();
+      window.location.reload();
+      return;
+    }
     if (target.dataset.setting === "persistSession") settings.persistSession = target.checked;
-    if (target === elements.overlayToggle) settings.showBetOverlay = target.checked;
     persist();
     render();
   });
 
   elements.chipRow.addEventListener("pointerdown", (event) => {
     const chipButton = event.target.closest("[data-chip-value]");
-    if (!chipButton || betMode !== "drag") return;
+    if (!chipButton || betMode !== "drag" || !canMutateSession()) return;
     selectedChip = Number(chipButton.dataset.chipValue);
     settings.preferredChipValue = selectedChip;
     dragState = { amount: selectedChip };
@@ -507,9 +564,12 @@ export function createApp(root) {
     if (!dragState) return;
     const target = document.elementFromPoint(event.clientX, event.clientY)?.closest(".bet-zone");
     if (target?.dataset.betKey) addBet(target.dataset.betKey, dragState.amount);
-    dragState = null;
-    elements.dragGhost.hidden = true;
-    root.querySelectorAll(".bet-zone.is-hovered").forEach((node) => node.classList.remove("is-hovered"));
+    clearDragState();
+  });
+
+  root.addEventListener("pointercancel", () => {
+    if (!dragState) return;
+    clearDragState();
   });
 
   window.addEventListener("keydown", (event) => {
@@ -521,16 +581,18 @@ export function createApp(root) {
     }
     if (event.key === "Backspace" || key === "z") {
       event.preventDefault();
+      if (!canMutateSession()) return;
       session = undoLastAction(session);
       persist();
       render();
     }
     if (key === "c") {
+      if (!canMutateSession()) return;
       session = clearBets(session);
       persist();
       render();
     }
-    if (key === "r") repeatLayout();
+    if (key === "r") repeatActiveLayout();
     if (key === "h") openHelp(modalElements);
     if (key === "s") openStatsView();
     if (event.key === "Escape") closeModal(modalElements);

@@ -31,25 +31,37 @@ function key(type, numbers, label) {
   };
 }
 
+function sortBetNumbers(numbers) {
+  return [...numbers].sort((a, b) => {
+    if (a === b) return 0;
+    if (a === 0) return -1;
+    if (b === 0) return 1;
+    if (a === "00") return -1;
+    if (b === "00") return 1;
+    return a - b;
+  });
+}
+
 export function buildBetDefinitions() {
   const definitions = [];
 
   for (let number = 0; number <= 36; number += 1) {
     definitions.push(key("straight", [number], `${number}`));
   }
+  definitions.push(key("straight", ["00"], "00"));
 
   for (let row = 0; row < INSIDE_GRID_ROWS.length; row += 1) {
     const numbers = INSIDE_GRID_ROWS[row];
-    definitions.push(key("street", [...numbers].sort((a, b) => a - b), `${numbers[2]}-${numbers[0]}`));
+    definitions.push(key("street", sortBetNumbers(numbers), `${numbers[2]}-${numbers[0]}`));
 
     if (row < INSIDE_GRID_ROWS.length - 1) {
       const next = INSIDE_GRID_ROWS[row + 1];
-      const sixLineNumbers = [...numbers, ...next].sort((a, b) => a - b);
+      const sixLineNumbers = sortBetNumbers([...numbers, ...next]);
       definitions.push(key("sixLine", sixLineNumbers, `${sixLineNumbers[0]}-${sixLineNumbers[sixLineNumbers.length - 1]}`));
     }
 
     for (let col = 0; col < numbers.length - 1; col += 1) {
-      const splitNumbers = [numbers[col], numbers[col + 1]].sort((a, b) => a - b);
+      const splitNumbers = sortBetNumbers([numbers[col], numbers[col + 1]]);
       definitions.push(key("split", splitNumbers, `${splitNumbers[0]}-${splitNumbers[1]}`));
     }
   }
@@ -59,12 +71,12 @@ export function buildBetDefinitions() {
     const next = INSIDE_GRID_ROWS[row + 1];
 
     for (let col = 0; col < current.length; col += 1) {
-      const splitNumbers = [current[col], next[col]].sort((a, b) => a - b);
+      const splitNumbers = sortBetNumbers([current[col], next[col]]);
       definitions.push(key("split", splitNumbers, `${splitNumbers[0]}-${splitNumbers[1]}`));
     }
 
     for (let col = 0; col < current.length - 1; col += 1) {
-      const cornerNumbers = [current[col], current[col + 1], next[col], next[col + 1]].sort((a, b) => a - b);
+      const cornerNumbers = sortBetNumbers([current[col], current[col + 1], next[col], next[col + 1]]);
       definitions.push(key("corner", cornerNumbers, `${cornerNumbers.join("-")}`));
     }
   }
@@ -72,6 +84,7 @@ export function buildBetDefinitions() {
   definitions.push(key("split", [0, 1], "0-1"));
   definitions.push(key("split", [0, 2], "0-2"));
   definitions.push(key("split", [0, 3], "0-3"));
+  definitions.push(key("split", [0, "00"], "0-00"));
   definitions.push(key("street", [0, 1, 2], "0-1-2"));
   definitions.push(key("street", [0, 2, 3], "0-2-3"));
 

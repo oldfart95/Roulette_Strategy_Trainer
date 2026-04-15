@@ -1,7 +1,16 @@
-import { getNumberColor } from "../data/wheel.js";
+import { getNumberColor, getWheelOrder } from "../data/wheel.js";
 
-function createDistribution(size, start = 0) {
-  return Array.from({ length: size }, (_, index) => ({ key: index + start, count: 0, pct: 0 }));
+function createDistribution(wheelMode) {
+  return getWheelOrder(wheelMode)
+    .slice()
+    .sort((a, b) => {
+      if (a === 0) return -1;
+      if (b === 0) return 1;
+      if (a === "00") return b === 0 ? 1 : -1;
+      if (b === "00") return a === 0 ? -1 : 1;
+      return a - b;
+    })
+    .map((key) => ({ key, count: 0, pct: 0 }));
 }
 
 function summarizeRolling(history, size) {
@@ -66,7 +75,8 @@ export function computeStats(session) {
   const history = session.history;
   const spins = history.length;
 
-  const numberDistribution = createDistribution(37);
+  const numberDistribution = createDistribution(session.wheelMode ?? "european");
+  const numberIndex = new Map(numberDistribution.map((item, index) => [item.key, index]));
   const counts = {
     red: 0,
     black: 0,
@@ -86,7 +96,8 @@ export function computeStats(session) {
   const byBetType = {};
 
   for (const entry of history) {
-    numberDistribution[entry.number].count += 1;
+    const distributionIndex = numberIndex.get(entry.number);
+    if (distributionIndex !== undefined) numberDistribution[distributionIndex].count += 1;
     const { outcome } = entry;
     counts[outcome.color] = (counts[outcome.color] ?? 0) + 1;
     if (outcome.parity === "odd" || outcome.parity === "even") counts[outcome.parity] += 1;

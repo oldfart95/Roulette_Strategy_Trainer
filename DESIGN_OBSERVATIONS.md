@@ -39,6 +39,40 @@ The circular chips and quieter split markers were the right move.
 7. Consider a more elegant treatment for column labels than the current narrow vertical text.
 8. Keep the split and corner targets visually quiet unless hover or overlay mode is active.
 
+## Current Fix Status
+
+- The old study overlay concept was removed rather than refined. It had become structurally noisy and was masking layout problems instead of clarifying them.
+- Inner edge-bet target markup for splits, corners, streets, six lines, and zero-edge combinations was stripped from the board for a clean reset.
+- Chip rendering was restricted so hidden edge bets no longer leak ghost stacks into the lower field.
+- The main field geometry was tightened and then rebalanced around shared height variables so the number grid, zero lane, column rail, dozen row, and outside row register more consistently.
+- The board now reads cleaner, but the bet-surface architecture still wants a more unified geometric system instead of ad hoc visual alignment.
+
+## What Still Needs Work Next
+
+- Rebuild inside edge-bet positions from scratch on top of the cleaned field. Do not resurrect the old overlay-era target markup.
+- Derive all future seam targets from one canonical board geometry model so split, corner, street, six-line, zero-edge, and column placements align mechanically instead of by visual approximation.
+- Revisit the right-side `2 to 1` rail. It now has better breathing room, but the pill treatment still needs a more exact fit inside the column strip.
+- Continue refining line registration where the inside grid meets the zero lane, right rail, dozen row, and outside row.
+- Keep the felt background shading as-is. It is in the right family now.
+- Preserve the calmer surface treatment. The earlier faux-glare and over-annotated overlay language should not come back.
+- Number markers should continue moving toward the wheel aesthetic: flatter elliptical lozenges, subtler highlight, less digital gloss.
+
+## Latest Layout Learnings
+
+- The recent stage unification work was directionally correct. The board should continue owning the stage instead of sitting inside a large unused felt field.
+- The oversized green void around the table is a composition bug, not a styling opportunity. Treat exposed felt as apron and trim, not empty room.
+- The top bar reads better when it is limited to title plus status readouts. It should not be the main home for the action cluster.
+- The primary action buttons (`Undo`, `Clear`, `Repeat`, `Help`, `Stats`, `Spin`) should live below the betting table in the lower stage area rather than in the top header.
+- That lower control rail should feel integrated with the table assembly, not like a generic extra toolbar or dashboard card.
+- The wheel panel still wants occupancy and header cleanup later, but board ownership and control placement take priority.
+
+## Implementation Notes For The Next Pass
+
+- Prefer one shared set of CSS geometry variables for row heights, rail width, and band heights before reintroducing edge-bet hit areas.
+- Treat the current board as a clean-room baseline. Reintroduce only one bet-position family at a time and verify placement visually before adding the next.
+- Avoid fallback rendering paths that can place orphaned chip stacks into generic field space.
+- If a study aid returns later, it should be redesigned from zero after the physical betting geometry is correct.
+
 ## Constraints To Preserve
 
 - Keep the existing bet keys, chip stack hooks, and interaction wiring intact.
